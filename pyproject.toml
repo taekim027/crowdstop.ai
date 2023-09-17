@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "crowdstop"
+version = "0.1.0"
+description = ""
+authors = ["Tae Kim <taekim027@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pydantic = "^2.3.0"
+numpy = "^1.23.5"
+Pillow = "^10.0.1"
+motrackers = "^0.0.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
