@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw
 import numpy as np
 import pandas as pd
 import csv
+import cv2
 from pydantic import BaseModel
 
 np.random.seed(0)
@@ -39,6 +40,9 @@ class SomptImage:
 
     def image(self) -> Image:
         return Image.open(self._fp)
+    
+    def cv2_image(self):
+        return cv2.imread(str(self._fp))
     
     def render(self):
         img = self.image()
