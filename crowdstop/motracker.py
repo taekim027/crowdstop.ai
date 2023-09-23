@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-from motrackers.detectors import YOLOv3
+from motrackers.detectors import YOLOv3, Caffe_SSDMobileNet, TF_SSDMobileNetV2
 from motrackers import CentroidTracker, CentroidKF_Tracker, SORT, IOUTracker
 from motrackers.utils import draw_tracks
 
@@ -25,20 +25,27 @@ class TrackerType(Enum):
     SORT = 'SORT'
     IOUTracker = 'IOUTracker'
 
+class DetectorType(Enum):
+    YOLOv3 = 'YOLOv3'
+    Caffe_SSDMobileNet = 'Caffe_SSDMobileNet'
+    TF_SSDMobileNetV2 = 'TF_SSDMobileNetV2"'
+
 @app.command()
 def main(
     dataset_dir: Annotated[Path, Argument(help='Base dataset directory containing SOMPT scenes')],
     scene_num: int,
+    detector: Annotated[DetectorType, Option('--detector', '-d', help='Detector used to detect objects')],
+    tracker: Annotated[TrackerType, Option('--tracker', '-t', help='Tracker used to track objects')],
     weights: Annotated[Path, Option('--weights', '-w', help='Path to weights file of YOLOv3 (`.weights` file)')] = '../../multi-object-tracker/examples/pretrained_models/yolo_weights/yolov3.weights',
     config: Annotated[Path, Option('--config', '-c', help='Path to config file of YOLOv3 (`.cfg` file)')] = '../../multi-object-tracker/examples/pretrained_models/yolo_weights/yolov3.cfg',
     labels: Annotated[Path, Option('--labels', '-l', help='Path to labels file of coco dataset (`.names` file')] = '../../multi-object-tracker/examples/pretrained_models/yolo_weights/coco_names.json',
-    tracker: Annotated[TrackerType, Option('--tracker', '-t', help='Tracker used to track objects')] = TrackerType.CentroidKF_Tracker.value,
     gpu: Annotated[bool, Option(help='Flag to use gpu to run the deep learning model. Default is `False`')] = False,
     output_gif: Path = None,
     show_gif: bool = True,
     limit: int = -1
 ) -> None:
 
+    # set the tracker
     if tracker is TrackerType.CentroidTracker:
         tracker = CentroidTracker(max_lost=0, tracker_output_format='mot_challenge')
     elif tracker is TrackerType.CentroidKF_Tracker:
@@ -49,15 +56,24 @@ def main(
         tracker = IOUTracker(max_lost=2, iou_threshold=0.5, min_detection_confidence=0.4, max_detection_confidence=0.7,
                              tracker_output_format='mot_challenge')
 
-    model = YOLOv3(
-        weights_path=str(weights),
-        configfile_path=str(config),
-        labels_path=str(labels),
-        confidence_threshold=0.5,
-        nms_threshold=0.2,
-        draw_bboxes=True,
-        use_gpu=gpu
-    )
+    # set the detector
+    if detector is DetectorType.YOLOv3:
+        model = YOLOv3(
+            weights_path=str(weights),
+            configfile_path=str(config),
+            labels_path=str(labels),
+            confidence_threshold=0.5,
+            nms_threshold=0.2,
+            draw_bboxes=True,
+            use_gpu=gpu
+        )
+    # TODO: to construct each
+    elif detector is DetectorType.Caffe_SSDMobileNet:
+        model = Caffe_SSDMobileNet()
+    elif detector is DetectorType.TF_SSDMobileNetV2:
+        model = TF_SSDMobileNetV2()
+    else:
+        raise ValueError('Unsupported detector type')
 
     scene = SomptScene(dataset_dir, scene_num)
     images = list(track(scene, model, tracker, show_gif))
