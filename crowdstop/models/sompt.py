@@ -73,6 +73,10 @@ class SomptScene:
     @property
     def annotation_fp(self) -> Path:
         return self._dir / 'gt' / 'gt.txt'
+    
+    @property
+    def detect_fp(self) -> Path:
+        return self._dir / 'det' / 'det.txt'
 
     def __len__(self) -> int:
         return len(list(self.image_dir.glob('*.jpg')))

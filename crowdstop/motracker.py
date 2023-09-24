@@ -12,6 +12,7 @@ from motrackers import CentroidTracker, CentroidKF_Tracker, SORT, IOUTracker
 from motrackers.utils import draw_tracks
 
 from crowdstop.models.sompt import SomptScene
+from crowdstop.moteval import calculate_motmetrics, metrics_motchallenge_files, compute_motchallenge
 
 
 app = Typer(
@@ -98,6 +99,20 @@ def main(
     )
 
     scene = SomptScene(dataset_dir, scene_num)
+
+    #### README ####
+    # these two output the same metrics but keeping both in case we want to bulk run using #1
+    # approach 1 does require reformatting of det.txt files to remove the space between commas
+
+    # APPROACH 1: print metrics using MOTMETRICS
+    metrics = metrics_motchallenge_files(data_dir='../sompt22/train')
+    print(metrics)
+    # APPROACH 2: print metrics using MOTRACKERS
+    gtSource = scene.annotation_fp
+    detSource = scene.detect_fp
+    metrics = calculate_motmetrics(gtSource, detSource)
+    print(metrics)
+
     images = list(track(scene, model, tracker, show_gif))
     if limit != -1:
         images = images[:limit]
