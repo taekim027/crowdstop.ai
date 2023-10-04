@@ -11,7 +11,6 @@ app = FastAPI()
 @app.put('/camera/{camera_id}')
 def update_camera(camera_id: str, request: CameraUpdateRequest) -> None:
     logger.info(f'Incoming request to update camera {camera_id}: {request}')
-    pass
 
 
 @app.get("/health")
