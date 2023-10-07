@@ -2,6 +2,10 @@ import motmetrics as mm
 import numpy as np
 import os
 
+# # APPROACH 1: print metrics using MOTMETRICS
+# requires reformatting to remove trailing spaces
+# metrics = metrics_motchallenge_files(data_dir='../sompt22/train')
+
 # PROVIDED BY MOTMETRICS GITHUB
 # calculate motmetrics given ground truth and tracker object files
 def calculate_motmetrics(gtSource, tSource):
@@ -15,7 +19,8 @@ def calculate_motmetrics(gtSource, tSource):
     acc = mm.MOTAccumulator(auto_id=True)
 
     # Max frame number maybe different for gt and t files
-    for frame in range(int(gt[:,0].max())):
+    for frame in range(int(t[:,0].max())):
+    #for frame in range(int(gt[:,0].max())):
         frame += 1 # detection and frame numbers begin at 1
 
         # select id, x, y, width, height for current frame

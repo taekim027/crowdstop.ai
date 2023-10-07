@@ -9,6 +9,8 @@ import csv
 import cv2
 from pydantic import BaseModel
 
+from crowdstop.models.enums import DetectorType, TrackerType
+
 np.random.seed(0)
 COLORS = [
     tuple(np.random.choice(range(256), size=3))
@@ -76,7 +78,12 @@ class SomptScene:
     
     @property
     def detect_fp(self) -> Path:
-        return self._dir / 'det' / 'det.txt'
+        file_name = f'{self._detector_type.value}_{self._tracker_type.value}_det.txt'
+        return self._dir / 'det' / file_name
+    
+    def set_tracker_and_detector(self, detector_type: DetectorType, tracker_type: TrackerType) -> None:
+        self._detector_type = detector_type
+        self._tracker_type = tracker_type
 
     def __len__(self) -> int:
         return len(list(self.image_dir.glob('*.jpg')))

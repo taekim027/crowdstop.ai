@@ -6,6 +6,8 @@ from typing import Annotated, Iterable
 import numpy as np
 from PIL import Image
 import itertools
+import csv
+from pathlib import Path
 
 from crowdstop.ml.multiple_object_tracker import MultipleObjectTracker
 from crowdstop.models.sompt import SomptScene
@@ -59,32 +61,44 @@ def main(
     # Init multiple object tracker model and dataset scene to analyze
     model = MultipleObjectTracker(tracker, detector_type)
     scene = SomptScene(dataset_dir, scene_num)
+
+    # Set detector and tracker types for the scene
+    scene.set_tracker_and_detector(detector_type, tracker)
     
     # Start lazy eval
     tracks = model.track(scene, show_output=show_gif or output_gif)
     if limit != -1:
         # Only evaluate first n images
         tracks = itertools.islice(tracks, limit)
+
+    # Ensure the directory exists
+    output_file_path = scene.detect_fp
+    output_file_path.touch()
     
-    if show_gif:
+    # Write annotations to a det.txt file
+    with open(output_file_path, mode='w', newline='', encoding='utf-8') as det_file:
+        det_writer = csv.writer(det_file, delimiter=',')
+        # det_writer.writerow(['frame', 'person_id', 'xmin', 'ymin', 'width', 'height'])
+
         for image, annotation in tracks:
-            cv.imshow("image", image)
+            for ann in annotation:
+                det_writer.writerow([ann.frame, ann.person_id, ann.x, ann.y, ann.width, ann.height])
+
+            if show_gif:
+                cv.imshow("image", image)
+
+            # stop the loop early for testing
+            if ann.frame == 50:
+                break
     
     if output_gif:
         save_as_gif([image for image, _ in tracks], output_gif)
-        
-     # #### README ####
-    # # these two output the same metrics but keeping both in case we want to bulk run using #1
-    # # approach 1 does require reformatting of det.txt files to remove the space between commas
 
-    # # APPROACH 1: print metrics using MOTMETRICS
-    # metrics = metrics_motchallenge_files(data_dir='../sompt22/train')
-    # print(metrics)
-    # # APPROACH 2: print metrics using MOTRACKERS
-    # gtSource = scene.annotation_fp
-    # detSource = scene.detect_fp
-    # metrics = calculate_motmetrics(gtSource, detSource)
-    # print(metrics)
+    # evaluate metrics after det.txt has been generated
+    gtSource = scene.annotation_fp
+    detSource = scene.detect_fp
+    metrics = calculate_motmetrics(gtSource, detSource)
+    print(metrics)
 
 
 def save_as_gif(image_arrays: Iterable[np.ndarray], output_fp: Path):

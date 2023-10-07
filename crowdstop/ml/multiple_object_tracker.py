@@ -55,7 +55,8 @@ class MultipleObjectTracker:
     def track(self, scene: SomptScene, show_output: bool = False) -> Iterable[tuple[np.ndarray, list[ImageAnnotation]]]:
         for image in tqdm(scene.frames, total=len(scene)):
 
-            image = cv2.resize(image.cv2_image(), (700, 500))
+            #image = cv2.resize(image.cv2_image(), (700, 500))
+            image = image.cv2_image()
 
             bboxes, confidences, class_ids = self._model.detect(image)
             tracks = self._tracker.update(bboxes, confidences, class_ids)
