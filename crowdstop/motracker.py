@@ -97,7 +97,7 @@ def main(
     # evaluate metrics after det.txt has been generated
     gtSource = scene.annotation_fp
     detSource = scene.detect_fp
-    metrics = calculate_motmetrics(gtSource, detSource)
+    metrics = calculate_motmetrics(gtSource, detSource, bottom_left=True)
     print(metrics)
 
 
