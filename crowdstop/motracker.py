@@ -66,7 +66,8 @@ def main(
     scene.set_tracker_and_detector(detector_type, tracker)
     
     # Start lazy eval
-    tracks = model.track(scene, show_output=show_gif or output_gif)
+    # tracks = model.track(scene, show_output=show_gif or output_gif)
+    tracks = model.quadtrack(scene, show_output=show_gif or output_gif)
     if limit != -1:
         # Only evaluate first n images
         tracks = itertools.islice(tracks, limit)
@@ -97,7 +98,7 @@ def main(
     # evaluate metrics after det.txt has been generated
     gtSource = scene.annotation_fp
     detSource = scene.detect_fp
-    metrics = calculate_motmetrics(gtSource, detSource, bottom_left=True)
+    metrics = calculate_motmetrics(gtSource, detSource, bottom_left=False)
     print(metrics)
 
 

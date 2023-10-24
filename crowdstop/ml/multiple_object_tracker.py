@@ -83,3 +83,65 @@ class MultipleObjectTracker:
                 break
                 
         cv2.destroyAllWindows()
+
+    def quadtrack(self, scene: SomptScene, show_output: bool = False) -> Iterable[tuple[np.ndarray, list[ImageAnnotation]]]:
+        for image in tqdm(scene.frames, total=len(scene)):
+
+            #image = cv2.resize(image.cv2_image(), (700, 500))
+            image = image.cv2_image()
+
+            #split image into quadrants
+            height, width, channels = image.shape
+            x_mid, y_mid = width // 2, height // 2
+
+            top_left = image[0:y_mid, 0:x_mid]
+            top_right = image[0:y_mid, x_mid:width]
+            bottom_left = image[y_mid:height, 0:x_mid]
+            bottom_right = image[y_mid:height, x_mid:width]
+
+            bboxes = []
+            confidences = []
+            class_ids = []
+            offsets = [(0, 0), (x_mid, 0), (0, y_mid), (x_mid, y_mid)]
+
+            for i, subimage in enumerate([top_left, top_right, bottom_left, bottom_right]):
+                bboxes_sub, confidences_sub, class_ids_sub = self._model.detect(subimage)
+
+                #applies pixel offset depending on which quadrant is being scanned
+                offset_x, offset_y = offsets[i]
+                bboxes_sub[:, 0] += offset_x
+                bboxes_sub[:, 1] += offset_y
+
+                bboxes.append(bboxes_sub)
+                confidences.append(confidences_sub)
+                class_ids.append(class_ids_sub)
+
+            bboxes = np.vstack(bboxes)
+            confidences = np.concatenate(confidences)
+            class_ids = np.concatenate(class_ids)
+
+            tracks = self._tracker.update(bboxes, confidences, class_ids)
+            annotations: list[ImageAnnotation] = list()
+
+            for track in tracks:
+                frame, id, xmin, ymin, width, height, *_ = track
+                annotations.append(ImageAnnotation(
+                    frame=frame,
+                    person_id=id,
+                    x=xmin,
+                    y=ymin,
+                    width=width,
+                    height=height
+                ))
+                
+            updated_image = None
+            if show_output:
+                updated_image = self._model.draw_bboxes(image.copy(), bboxes, confidences, class_ids)
+                updated_image: np.ndarray = draw_tracks(updated_image, tracks)
+                
+            yield updated_image, annotations
+            
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+                
+        cv2.destroyAllWindows()
