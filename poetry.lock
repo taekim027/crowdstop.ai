@@ -836,6 +836,53 @@ setuptools = "*"
 docs = ["m2r2", "sphinx"]
 
 [[package]]
+name = "neo4j"
+version = "5.12.0"
+description = "Neo4j Bolt driver for Python"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "neo4j-5.12.0.tar.gz", hash = "sha256:00a776a687267150f9e1950017316b751cf63db7b734a699b1405ac20fd4a731"},
+]
+
+[package.dependencies]
+pytz = "*"
+
+[package.extras]
+numpy = ["numpy (>=1.7.0,<2.0.0)"]
+pandas = ["numpy (>=1.7.0,<2.0.0)", "pandas (>=1.1.0,<3.0.0)"]
+
+[[package]]
+name = "neobolt"
+version = "1.7.17"
+description = "Neo4j Bolt connector for Python"
+optional = false
+python-versions = "*"
+files = [
+    {file = "neobolt-1.7.17.tar.gz", hash = "sha256:1d0d5efce7221fc4f0ffc4a315bc5272708be5aa2aef5434269e800372d8db89"},
+]
+
+[[package]]
+name = "neomodel"
+version = "5.1.2"
+description = "An object mapper for the neo4j graph database."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "neomodel-5.1.2-py3-none-any.whl", hash = "sha256:20d96ffbf5c5a016ce183cfead3c79eef30f208439a398883d8d8198de792e24"},
+    {file = "neomodel-5.1.2.tar.gz", hash = "sha256:aa3fefee606b3ee15701358e92c6131d0c5744445763c000782cf76207faa155"},
+]
+
+[package.dependencies]
+neo4j = "5.12.0"
+neobolt = "1.7.17"
+pytz = ">=2021.1"
+six = "1.16.0"
+
+[package.extras]
+dev = ["Shapely (>=2.0.0)", "black", "isort", "pre-commit", "pytest (>=7.1)", "pytest-cov (>=4.0)"]
+
+[[package]]
 name = "numpy"
 version = "1.25.2"
 description = "Fundamental package for array computing in Python"
@@ -1632,4 +1679,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "7956de1464ff7772f2c9922565fe40b7edf9611f244e340b3fa0d0ebd545055c"
+content-hash = "5a2ac7574417099605525a5db7b87a8139541df282184a00f4e47e8cc5dc8d67"

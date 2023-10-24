@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from crowdstop.models.api import CameraUpdateRequest
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__file__)
 app = FastAPI()
 
 
