@@ -101,6 +101,22 @@ def main(
     metrics = calculate_motmetrics(gtSource, detSource, bottom_left=False)
     print(metrics)
 
+    # read generated det.txt file to track each object's movement at the end of frames
+    movement_results = model.track_movement_from_det_txt(detSource)
+    summary = summarize_direction_counts(movement_results)
+    print(summary)
+
+def summarize_direction_counts(result_array):
+    """ 
+    counts the number of each direction movement
+    compares the first and last time each object id is seen
+    """
+    direction_counts = {"left": 0, "right": 0, "up": 0, "down": 0}
+
+    for _, _, direction in result_array:
+        direction_counts[direction] += 1
+
+    return direction_counts
 
 def save_as_gif(image_arrays: Iterable[np.ndarray], output_fp: Path):
     

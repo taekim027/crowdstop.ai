@@ -120,6 +120,12 @@ class MultipleObjectTracker:
             confidences = np.concatenate(confidences)
             class_ids = np.concatenate(class_ids)
 
+            # filter to only include "person" class, or id == 0
+            person_mask = class_ids == 0
+            bboxes = bboxes[person_mask]
+            confidences = confidences[person_mask]
+            class_ids = class_ids[person_mask]
+
             tracks = self._tracker.update(bboxes, confidences, class_ids)
             annotations: list[ImageAnnotation] = list()
 
@@ -145,3 +151,42 @@ class MultipleObjectTracker:
                 break
                 
         cv2.destroyAllWindows()
+    
+    def track_movement_from_det_txt(self, det_file_path: str):
+        """ compares the first and last positions of each id to show their overall movement """
+        # store initial and final positions of objects
+        initial_positions = {} 
+        final_positions = {}
+        # store each (id, distance, direction)
+        result_array = []
+
+        with open(det_file_path, 'r') as det_file:
+
+            for line in det_file:
+                # read from det.txt
+                frame, id, xmin, ymin, width, height, *_ = map(float, line.strip().split(','))
+
+                # update initial positions if not already set
+                if id not in initial_positions:
+                    initial_positions[id] = (xmin, ymin)
+
+                final_positions[id] = (xmin, ymin)
+
+        for id, initial_pos in initial_positions.items():
+            final_pos = final_positions[id]
+            # calculate eucledian distance 
+            displacement = np.linalg.norm(np.array(final_pos) - np.array(initial_pos))
+            # calculate relative direction
+            dx = final_pos[0] - initial_pos[0]
+            dy = final_pos[1] - initial_pos[1]
+
+            # choose direction based on delta x or y
+            if abs(dx) > abs(dy):
+                direction = "left" if dx < 0 else "right"
+            else:
+                direction = "up" if dy < 0 else "down"
+
+            result_array.append([id, displacement, direction])
+            # print(f'id: {id}, initial pos: {initial_pos}, final pos: {final_pos}')
+        
+        return result_array
