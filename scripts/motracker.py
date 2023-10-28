@@ -12,7 +12,7 @@ from pathlib import Path
 from crowdstop.ml.multiple_object_tracker import MultipleObjectTracker
 from crowdstop.models.sompt import SomptScene
 from crowdstop.models.enums import DetectorType, TrackerType
-from crowdstop.moteval import calculate_motmetrics, metrics_motchallenge_files, compute_motchallenge
+from scripts.moteval import calculate_motmetrics, metrics_motchallenge_files, compute_motchallenge
 
 
 app = Typer(

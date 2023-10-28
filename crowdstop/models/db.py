@@ -1,6 +1,12 @@
-from neomodel import StructuredNode, UniqueIdProperty, FloatProperty, StringProperty, ArrayProperty, RelationshipTo, RelationshipFrom, config
+import os
+from neomodel import (
+    StructuredNode, UniqueIdProperty, FloatProperty, StringProperty, ArrayProperty, 
+    DateTimeProperty, RelationshipTo, RelationshipFrom, config
+)
 
 config.DATABASE_URL = 'bolt://neo4j:password@localhost:7687'
+
+DENSITY_ALERT_THRESHOLD = int(os.getenv('DENSITY_ALERT_THRESHOLD', '10'))
 
 
 class Camera(StructuredNode):
@@ -13,6 +19,7 @@ class Camera(StructuredNode):
     # Variables, updated via API call
     people_count = FloatProperty(default=0)
     people_velocities = ArrayProperty(base_property=FloatProperty(default=0))
+    last_updated = DateTimeProperty(default_now=True)
     
     places = RelationshipTo('PointOfInterest', 'PLACES')
     
@@ -27,26 +34,5 @@ class Place(StructuredNode):
     area = FloatProperty(required=True)
     
     estimated_count = FloatProperty(default=0)
+    last_updated = DateTimeProperty(default_now=True)
     
-    # cameras
-    
-
-
-# EXAMPLE
-# class Book(StructuredNode):
-#     title = StringProperty(unique_index=True)
-#     author = RelationshipTo('Author', 'AUTHOR')
-
-# class Author(StructuredNode):
-#     name = StringProperty(unique_index=True)
-#     books = RelationshipFrom('Book', 'AUTHOR')
-
-
-# harry_potter = Book(title='Harry potter and the..').save()
-# rowling =  Author(name='J. K. Rowling').save()
-# harry_potter.author.connect(rowling)
-
-# if __name__ == '__main__':
-#     # harry_potter = Book(title='Harry potter and the..').save()
-#     books = Book.nodes.all()
-#     breakpoint()
