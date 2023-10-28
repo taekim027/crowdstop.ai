@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from crowdstop.server import app
+from crowdstop.main_server import app
 
 @pytest.fixture(scope='package')
 def client() -> TestClient:

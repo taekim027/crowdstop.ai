@@ -21,7 +21,7 @@ class Camera(StructuredNode):
     people_velocities = ArrayProperty(base_property=FloatProperty(default=0))
     last_updated = DateTimeProperty(default_now=True)
     
-    places = RelationshipTo('PointOfInterest', 'PLACES')
+    places = RelationshipTo('Place', 'PLACES')
     
     @property
     def density(self) -> float:

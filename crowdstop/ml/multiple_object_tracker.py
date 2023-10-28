@@ -151,6 +151,10 @@ class MultipleObjectTracker:
                 break
                 
         cv2.destroyAllWindows()
+        
+    def track_movement(self, annotations_by_frame: Iterable[list[ImageAnnotation]]):
+        raise NotImplementedError()
+        
     
     def track_movement_from_det_txt(self, det_file_path: str):
         """ compares the first and last positions of each id to show their overall movement """

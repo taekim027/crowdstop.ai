@@ -13,7 +13,8 @@ neo4j_client = Neo4jClient()
 @app.post('/camera')
 def create_camera(request: CameraCreateRequest) -> CameraCreateResponse:
     logger.info(f'Incoming request to creat camera: {request}')
-    neo4j_client.crea
+    camera_id = neo4j_client.create_camera(request.latitude, request.longitude, request.area, request.place_ids)
+    return CameraCreateResponse(uuid=camera_id)
 
 @app.put('/camera/{camera_id}')
 def update_camera(camera_id: str, request: CameraUpdateRequest) -> None:
@@ -23,6 +24,13 @@ def update_camera(camera_id: str, request: CameraUpdateRequest) -> None:
         timestamp=parser.parse(request.timestamp),
         count=request.count,
         velocities=request.velocities
+    )
+    
+@app.delete('/camera/{camera_id}')
+def delete_camera(camera_id: str) -> None:
+    logger.info(f'Incoming request to update camera {camera_id}: {camera_id}')
+    neo4j_client.delete_camera(
+        id=camera_id
     )
 
 

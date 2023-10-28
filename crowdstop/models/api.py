@@ -16,4 +16,4 @@ class Velocity(BaseModel):
 class CameraUpdateRequest(BaseModel):
     timestamp: str
     count: int      # people in frame
-    velocities: list[Velocity]
+    velocities: dict[str, float]

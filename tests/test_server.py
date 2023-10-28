@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
-import time
+from datetime import datetime
 
-from crowdstop.models.api import CameraUpdateRequest
+from crowdstop.models.api import CameraCreateRequest, CameraCreateResponse, CameraUpdateRequest
 
 from .conftest import client
 
@@ -23,8 +23,21 @@ def test_health(client: TestClient):
     assert response.get('status') == 'healthy', 'Expected "status" == "healthy" in response'
 
 def test_update(client: TestClient):
-    response = client.put(
-        '/camera/12345', 
-        json=CameraUpdateRequest(timestamp=int(time.time()), density=10).model_dump()
+    
+    response = client.post(
+        '/camera',
+        json=CameraCreateRequest(latitude=10, longitude=10, area=10, place_ids=[]).model_dump()
     )
-    assert response.status_code == 200
+    response.raise_for_status()
+    camera_id = CameraCreateResponse(**response.json()).uuid
+    
+    response = client.put(
+        f'/camera/{camera_id}', 
+        json=CameraUpdateRequest(timestamp=str(datetime.now()), count=10, velocities=dict()).model_dump()
+    )
+    response.raise_for_status()
+    
+    response = client.delete(
+        url=f'/camera/{camera_id}'
+    )
+    response.raise_for_status()
