@@ -153,6 +153,7 @@ class MultipleObjectTracker:
         cv2.destroyAllWindows()
         
     def track_movement(self, annotations_by_frame: Iterable[list[ImageAnnotation]]):
+        # TODO: track movement of people from one zone to another
         raise NotImplementedError()
         
     
