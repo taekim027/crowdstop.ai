@@ -1,0 +1,265 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/camera": {
+      "post": {
+        "summary": "Create Camera",
+        "operationId": "create_camera_camera_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraCreateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/camera/{camera_id}": {
+      "put": {
+        "summary": "Update Camera",
+        "operationId": "update_camera_camera__camera_id__put",
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Camera Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Camera",
+        "operationId": "delete_camera_camera__camera_id__delete",
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Camera Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CameraCreateRequest": {
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "title": "Latitude"
+          },
+          "longitude": {
+            "type": "number",
+            "title": "Longitude"
+          },
+          "area": {
+            "type": "number",
+            "title": "Area"
+          },
+          "place_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Place Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "latitude",
+          "longitude",
+          "area",
+          "place_ids"
+        ],
+        "title": "CameraCreateRequest"
+      },
+      "CameraCreateResponse": {
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "title": "Uuid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "uuid"
+        ],
+        "title": "CameraCreateResponse"
+      },
+      "CameraUpdateRequest": {
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "velocities": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Velocities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "timestamp",
+          "count",
+          "velocities"
+        ],
+        "title": "CameraUpdateRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
