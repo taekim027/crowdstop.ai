@@ -102,9 +102,11 @@ def main(
     print(metrics)
 
     # read generated det.txt file to track each object's movement at the end of frames
-    movement_results = model.track_movement_from_det_txt(detSource)
-    summary = summarize_direction_counts(movement_results)
-    print(summary)
+    #movement_results = model.track_movement_from_det_txt(detSource)
+    movement_results = model.track_movement_JL(detSource)
+    #summary = summarize_direction_counts(movement_results)
+    #print(summary)
+    print(movement_results)
 
 def summarize_direction_counts(result_array):
     """ 

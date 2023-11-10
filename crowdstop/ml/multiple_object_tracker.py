@@ -10,6 +10,9 @@ from motrackers.utils.misc import draw_tracks
 from crowdstop.models.sompt import ImageAnnotation, SomptScene
 from crowdstop.models.enums import TrackerType, DetectorType
 
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
+from itertools import combinations
 
 class MultipleObjectTracker:
 
@@ -155,8 +158,67 @@ class MultipleObjectTracker:
     def track_movement(self, annotations_by_frame: Iterable[list[ImageAnnotation]]):
         # TODO: track movement of people from one zone to another
         raise NotImplementedError()
-        
     
+    def track_movement_JL(self, det_file_path: str):
+        #Input needs to be converted from the det_file output to the direct feed from the model 
+        #Additional Input for Zone Thresholds
+        zone1 = Polygon([(0,0), (1920,0), (600, 700), (0, 700), (0,0)])
+        zone2 = Polygon([(600, 700), (1920, 0), (1920, 1080), (600, 1080), (600, 700)])
+        zone3 = Polygon([(0, 700), (600, 700), (600, 1080), (0, 1080), (0,700)])
+
+        zones = [zone1, zone2, zone3]
+
+        id_table = []
+        zone_ids = []
+
+        #for each ID, list of each ID's BBOX center, and create a list of the corresponding zones. 
+        with open(det_file_path, 'r') as det_file:
+            for line in det_file:
+                frame, id, xmin, ymin, width, height, *_ = map(float, line.strip().split(','))
+                id_table.append([id, xmin+width/2, ymin+height/2]) #ID and center of BBOX
+                #IDs will export in chronological order so no need to track frames
+
+        #For each ID, assign zones and return their beginning and end zones 
+        def assign_zone(x,y):
+            point = Point(x,y)
+            for i, zone in enumerate(zones, start = 1):
+                if zone.contains(point):
+                    return f"Zone {i}"
+            return "NA"
+        
+        for object in id_table:
+            object_id, x, y = object
+            zone_id = assign_zone(x, y)
+            zone_ids.append([object_id, zone_id])
+
+        #filter only for first and last occurrence of each object_ID
+        start_end_zones = {}
+
+        for row in zone_ids:
+            object_id, zone_id = row
+            if object_id not in start_end_zones:
+                start_end_zones[object_id] = {"start_zone": zone_id, "end_zone": zone_id}
+            else: 
+                start_end_zones[object_id]["end_zone"] = zone_id
+
+
+        #record the number of zone changes for each permutation (zone A to zone B)
+        zone_change_counts = {}
+        zone_change_counts["no change"] = 0
+
+        for object, zones in start_end_zones.items():
+            start_zone = zones['start_zone']
+            end_zone = zones['end_zone']
+            if start_zone == end_zone:
+                zone_change_counts["no change"]  += 1
+            else:
+                zone_change = f"{start_zone} - {end_zone}"
+                if zone_change not in zone_change_counts:
+                    zone_change_counts[zone_change] = 0
+                zone_change_counts[zone_change] += 1
+
+        return zone_change_counts
+
     def track_movement_from_det_txt(self, det_file_path: str):
         """ compares the first and last positions of each id to show their overall movement """
         # store initial and final positions of objects
