@@ -3,16 +3,22 @@ from crowdstop.models.api import Velocity
 from neomodel import config
 from datetime import datetime
 import uuid
+import boto3
 
 from crowdstop.models.db import Camera, Place
 
 logger = logging.getLogger(__file__)
 
+
+WARN_DENSITY_THRESHOLD = 5
+ALERT_DENSITY_THRESHOLD = 7
+
 class Neo4jClient:
     CameraNs = uuid.uuid5(uuid.NAMESPACE_DNS, 'camera.crowdstop.berkeley.edu')
     
-    def __init__(self, host_url: str = None) -> None:
+    def __init__(self, host_url: str = None, alert_topic_arn: str = None) -> None:
         self._host_url = host_url
+        self._alert_topic = boto3.resource('sns').Topic(alert_topic_arn) if alert_topic_arn else None
         config.DATABASE_URL = host_url or 'bolt://neo4j:password@localhost:7687'
     
     def create_camera(self, latitude: float, longitude: float, area: float, place_ids: list[str]) -> str:
@@ -48,7 +54,7 @@ class Neo4jClient:
         
         for place in camera.places.all():
             place: Place
-            place.estimated_count -= velocities.get(place.uuid, 0)  # Sign of velocity is positive if coming towards camera
+            place.people_count -= velocities.get(place.uuid, 0)  # Sign of velocity is positive if coming towards camera
             place.last_updated = max(timestamp, place.last_updated)
             place.save()
 
@@ -57,3 +63,31 @@ class Neo4jClient:
         camera: Camera = Camera.nodes.get(uuid=id)
         if camera:
             camera.delete()
+
+
+    def scan_and_alert(self):
+        logger.info(f'Scanning nodes for potential alerts...')
+        
+        warn_nodes = list(Camera.nodes.filter(people_count__gt=WARN_DENSITY_THRESHOLD)) \
+            + list(Place.nodes.filter(people_count__gt=WARN_DENSITY_THRESHOLD))
+        
+        alert_nodes = list(Camera.nodes.filter(people_count__gt=ALERT_DENSITY_THRESHOLD)) \
+            + list(Place.nodes.filter(people_count__gt=ALERT_DENSITY_THRESHOLD))
+        
+        logger.info(f'Found {len(warn_nodes)} nodes above warn threshold and {len(alert_nodes)} above alert')
+
+        if not self._alert_topic:
+            logger.info('This instance is not configured to send alerts, skipping')
+            return
+        
+        for warn in warn_nodes:
+            warn: Camera | Place
+            self._alert_topic.publish(
+                Message=f'Node ID {warn.uuid} has density {warn.people_count}, exceeding warn density threshold of {WARN_DENSITY_THRESHOLD}'
+            )
+
+        for alert in alert_nodes:
+            alert: Camera | Place
+            self._alert_topic.publish(
+                Message=f'Node ID {alert.uuid} has density {alert.people_count}, exceeding alert density threshold of {WARN_DENSITY_THRESHOLD}'
+            )
