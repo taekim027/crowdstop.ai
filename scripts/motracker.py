@@ -7,7 +7,9 @@ import numpy as np
 from PIL import Image
 import itertools
 import csv
+import json
 from pathlib import Path
+from shapely.geometry.polygon import Polygon
 
 from crowdstop.ml.multiple_object_tracker import MultipleObjectTracker
 from crowdstop.models.sompt import SomptScene
@@ -38,6 +40,9 @@ detector_models = {
     },
 }
 
+# zone config path
+zone_config_path = './ml/zone_config.json'
+
 @app.command()
 def main(
     dataset_dir: Annotated[Path, Argument(help='Base dataset directory containing SOMPT scenes')],
@@ -49,7 +54,8 @@ def main(
     show_gif: bool = True,
     limit: int = -1
 ) -> None:
-
+    
+    print(os.getcwd())
     assert not (output_gif and show_gif), 'Model can only output to screen or a GIF file, not both'
 
     # Populate env vars needed for detector configs. In production this will be done in Dockerfile
@@ -103,7 +109,15 @@ def main(
 
     # read generated det.txt file to track each object's movement at the end of frames
     #movement_results = model.track_movement_from_det_txt(detSource)
-    movement_results = model.track_movement_JL(detSource)
+
+    # read zone configs
+    with open(zone_config_path, 'r') as config_file:
+        zone_configs = json.load(config_file)
+    
+    zones = [Polygon(zone) for zone in zone_configs[str(scene_num)]]
+
+    # read det.txt file to track zone movements
+    movement_results = model.track_zone_movement(detSource, zones)
     #summary = summarize_direction_counts(movement_results)
     #print(summary)
     print(movement_results)

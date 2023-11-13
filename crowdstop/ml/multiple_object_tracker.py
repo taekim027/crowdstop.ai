@@ -2,6 +2,7 @@ import os
 from typing import Any, Iterable
 import cv2
 import numpy as np
+import json
 from tqdm import tqdm
 
 from motrackers import CentroidTracker, CentroidKF_Tracker, SORT, IOUTracker
@@ -159,15 +160,8 @@ class MultipleObjectTracker:
         # TODO: track movement of people from one zone to another
         raise NotImplementedError()
     
-    def track_movement_JL(self, det_file_path: str):
-        #Input needs to be converted from the det_file output to the direct feed from the model 
-        #Additional Input for Zone Thresholds
-        zone1 = Polygon([(0,0), (1920,0), (600, 700), (0, 700), (0,0)])
-        zone2 = Polygon([(600, 700), (1920, 0), (1920, 1080), (600, 1080), (600, 700)])
-        zone3 = Polygon([(0, 700), (600, 700), (600, 1080), (0, 1080), (0,700)])
-
-        zones = [zone1, zone2, zone3]
-
+    def track_zone_movement(self, det_file_path: str, zones):
+        # TODO: Input needs to be converted from the det_file output to the direct feed from the model 
         id_table = []
         zone_ids = []
 
@@ -201,21 +195,25 @@ class MultipleObjectTracker:
             else: 
                 start_end_zones[object_id]["end_zone"] = zone_id
 
-
-        #record the number of zone changes for each permutation (zone A to zone B)
-        zone_change_counts = {}
-        zone_change_counts["no change"] = 0
+        # count the number of total zone changes
+        zone_change_counts = {f"Zone {i}": 0 for i in range(1, len(zones) + 1)}
+        # zone_change_counts["no change"] = 0
 
         for object, zones in start_end_zones.items():
             start_zone = zones['start_zone']
             end_zone = zones['end_zone']
             if start_zone == end_zone:
-                zone_change_counts["no change"]  += 1
+                pass
             else:
-                zone_change = f"{start_zone} - {end_zone}"
-                if zone_change not in zone_change_counts:
-                    zone_change_counts[zone_change] = 0
-                zone_change_counts[zone_change] += 1
+                zone_change_counts[start_zone] -= 1
+                zone_change_counts[end_zone] += 1
+            # if start_zone == end_zone:
+            #     zone_change_counts["no change"]  += 1
+            # else:
+            #     zone_change = f"{start_zone} - {end_zone}"
+            #     if zone_change not in zone_change_counts:
+            #         zone_change_counts[zone_change] = 0
+            #     zone_change_counts[zone_change] += 1
 
         return zone_change_counts
 
