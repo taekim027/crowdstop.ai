@@ -33,6 +33,6 @@ class Place(StructuredNode):
     longitude = FloatProperty(required=True)
     area = FloatProperty(required=True)
     
-    estimated_count = FloatProperty(default=0)
+    people_count = FloatProperty(default=0)
     last_updated = DateTimeProperty(default_now=True)
     
