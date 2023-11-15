@@ -1,12 +1,18 @@
 from pydantic import BaseModel
 
+
+class PlaceCreateRequest(BaseModel):
+    latitude: float
+    longitude: float
+    area: float         # approx. area in sqft covered by camera
+
 class CameraCreateRequest(BaseModel):
     latitude: float
     longitude: float
     area: float         # approx. area in sqft covered by camera
     place_ids: list[str]
 
-class CameraCreateResponse(BaseModel):
+class CreateResponse(BaseModel):
     uuid: str
 
 class Velocity(BaseModel):

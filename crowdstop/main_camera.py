@@ -6,11 +6,12 @@ from datetime import datetime
 import requests
 from pathlib import Path
 import logging
+import random
 
 from crowdstop.ml.multiple_object_tracker import MultipleObjectTracker
 from crowdstop.models.sompt import SomptScene
 from crowdstop.models.enums import DetectorType, TrackerType
-from crowdstop.models.api import CameraCreateRequest, CameraUpdateRequest, Velocity
+from crowdstop.models.api import CameraCreateRequest, CameraUpdateRequest, PlaceCreateRequest, Velocity
 
 logger = logging.getLogger(__file__)
 
@@ -60,9 +61,19 @@ def main(
     # Set detector and tracker types for the scene
     scene.set_tracker_and_detector(detector_type, tracker)
     
+    place_ids = []
+    for place in places:
+        r = requests.post(
+            url=f'{host_url}/place',
+            json=PlaceCreateRequest(latitude=random.randint(0, 100), longitude=random.randint(0, 100), area=10).model_dump()
+        )
+        r.raise_for_status()
+        place_ids.append(r.json()['uuid'])
+
+
     response = requests.post(
         url=f'{host_url}/camera',
-        json=CameraCreateRequest(latitude=10, longitude=10, area=10, place_ids=[]).model_dump()
+        json=CameraCreateRequest(latitude=10, longitude=10, area=10, place_ids=place_ids).model_dump()
     )
     response.raise_for_status()
     camera_id = response.json()['uuid']

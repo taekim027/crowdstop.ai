@@ -15,12 +15,30 @@ ALERT_DENSITY_THRESHOLD = 7
 
 class Neo4jClient:
     CameraNs = uuid.uuid5(uuid.NAMESPACE_DNS, 'camera.crowdstop.berkeley.edu')
+    PlaceNs = uuid.uuid5(uuid.NAMESPACE_DNS, 'place.crowdstop.berkeley.edu')
     
     def __init__(self, host_url: str = None, alert_topic_arn: str = None) -> None:
         self._host_url = host_url
         self._alert_topic = boto3.resource('sns').Topic(alert_topic_arn) if alert_topic_arn else None
         config.DATABASE_URL = host_url or 'bolt://neo4j:password@localhost:7687'
     
+    def create_place(self, latitude: float, longitude: float, area: float) -> str:
+        existing = Place.nodes.filter(latitude=latitude, longitude=longitude)
+        if existing:
+            logger.info(f'Camera at ({latitude, longitude}) already exists with id {existing[0].uuid}, skipping creation')
+            return existing[0].uuid
+        
+        new_place = Place(
+            uuid=uuid.uuid5(self.PlaceNs, f'{latitude}.{longitude}').hex,
+            latitude=latitude,
+            longitude=longitude,
+            area=area,
+        )
+        
+        new_place.save() 
+        logger.info(f'Created new camera with id {new_place.uuid}')
+        return new_place.uuid
+
     def create_camera(self, latitude: float, longitude: float, area: float, place_ids: list[str]) -> str:
         existing = Camera.nodes.filter(latitude=latitude, longitude=longitude)
         if existing:

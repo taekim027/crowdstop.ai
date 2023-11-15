@@ -2,19 +2,26 @@ import logging
 from dateutil import parser
 from fastapi import FastAPI
 
-from crowdstop.models.api import CameraCreateRequest, CameraCreateResponse, CameraUpdateRequest
+from crowdstop.models.api import CameraCreateRequest, CreateResponse, CameraUpdateRequest, PlaceCreateRequest
 from crowdstop.services.neo4j_client import Neo4jClient
 
 logger = logging.getLogger(__file__)
 app = FastAPI()
 
-neo4j_client = Neo4jClient()
+neo4j_client = Neo4jClient(
+    alert_topic_arn='arn:aws:sns:us-east-1:359045531401:crowdstop_ai_alerts'
+)
+
+@app.post('/place')
+def create_place(request: PlaceCreateRequest) -> CreateResponse:
+    place_id = neo4j_client.create_place(request.latitude, request.longitude, request.area)
+    return CreateResponse(uuid=place_id)
 
 @app.post('/camera')
-def create_camera(request: CameraCreateRequest) -> CameraCreateResponse:
+def create_camera(request: CameraCreateRequest) -> CreateResponse:
     logger.info(f'Incoming request to creat camera: {request}')
     camera_id = neo4j_client.create_camera(request.latitude, request.longitude, request.area, request.place_ids)
-    return CameraCreateResponse(uuid=camera_id)
+    return CreateResponse(uuid=camera_id)
 
 @app.put('/camera/{camera_id}')
 def update_camera(camera_id: str, request: CameraUpdateRequest) -> None:

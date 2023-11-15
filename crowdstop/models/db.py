@@ -35,4 +35,8 @@ class Place(StructuredNode):
     
     people_count = FloatProperty(default=0)
     last_updated = DateTimeProperty(default_now=True)
+
+    @property
+    def density(self) -> float:
+        return self.people_count / self.area
     
