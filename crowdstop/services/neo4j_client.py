@@ -20,7 +20,7 @@ class Neo4jClient:
     def __init__(self, host_url: str = None, alert_topic_arn: str = None) -> None:
         self._host_url = host_url
         self._alert_topic = boto3.resource('sns', region_name='us-east-1').Topic(alert_topic_arn) if alert_topic_arn else None
-        config.DATABASE_URL = host_url or 'bolt://neo4j:password@localhost:7687'
+        config.DATABASE_URL = host_url or 'bolt://neo4j:crowdstop@localhost:7687'
     
     def create_place(self, latitude: float, longitude: float, area: float) -> str:
         existing = Place.nodes.filter(latitude=latitude, longitude=longitude)
@@ -52,12 +52,12 @@ class Neo4jClient:
             area=area,
         )
         
+        new_camera.save() 
         for place_id in place_ids:
             place = Place.nodes.get(uuid=place_id)
             assert place is not None, f'Could not find place with id {place_id}'
             new_camera.places.connect(place)
         
-        new_camera.save() 
         logger.info(f'Created new camera with id {new_camera.uuid}')
         return new_camera.uuid
     
