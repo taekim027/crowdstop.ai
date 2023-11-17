@@ -19,7 +19,7 @@ class Neo4jClient:
     
     def __init__(self, host_url: str = None, alert_topic_arn: str = None) -> None:
         self._host_url = host_url
-        self._alert_topic = boto3.resource('sns').Topic(alert_topic_arn) if alert_topic_arn else None
+        self._alert_topic = boto3.resource('sns', region_name='us-east-1').Topic(alert_topic_arn) if alert_topic_arn else None
         config.DATABASE_URL = host_url or 'bolt://neo4j:password@localhost:7687'
     
     def create_place(self, latitude: float, longitude: float, area: float) -> str:

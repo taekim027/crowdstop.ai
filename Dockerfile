@@ -26,4 +26,4 @@ ENV PATH /app/venv/bin:$PATH
 
 COPY . ./
 
-CMD ["uvicorn", "crowdstop.server:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "crowdstop.main_server:app", "--host", "0.0.0.0", "--port", "8000"]
