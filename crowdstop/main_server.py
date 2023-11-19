@@ -1,15 +1,23 @@
 import logging
+import os
 from dateutil import parser
 from fastapi import FastAPI
 
 from crowdstop.models.api import CameraCreateRequest, CreateResponse, CameraUpdateRequest, PlaceCreateRequest
 from crowdstop.services.neo4j_client import Neo4jClient
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger('main_server')
+
+logging.basicConfig(
+    level=logging.INFO
+)
+logger.info('Starting Crowdstop.AI server...')
+
 app = FastAPI()
 
 neo4j_client = Neo4jClient(
-    alert_topic_arn='arn:aws:sns:us-east-1:359045531401:crowdstop_ai_alerts'
+    host_url=os.getenv('NEO4J_URL'),
+    alert_topic_arn=os.getenv('ALERT_TOPIC_ARN')
 )
 
 @app.post('/place')

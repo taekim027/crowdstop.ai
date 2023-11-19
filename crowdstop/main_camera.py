@@ -1,19 +1,19 @@
+import json
 import os
 from typer import Typer, Argument, Option
 from pathlib import Path
 from typing import Annotated, Iterable
-from datetime import datetime
+from datetime import datetime, timezone
 import requests
 from pathlib import Path
 import logging
-import random
+from shapely.geometry.polygon import Polygon
 
 from crowdstop.ml.multiple_object_tracker import MultipleObjectTracker
+from crowdstop.models.camera_config import CameraConfig
 from crowdstop.models.sompt import SomptScene
 from crowdstop.models.enums import DetectorType, TrackerType
 from crowdstop.models.api import CameraCreateRequest, CameraUpdateRequest, PlaceCreateRequest, Velocity
-
-logger = logging.getLogger(__file__)
 
 app = Typer(
     help='Object detections in input video using YOLOv3 trained on COCO dataset.'
@@ -40,13 +40,21 @@ detector_models = {
 
 @app.command()
 def main(
-    host_url: str,
     dataset_dir: Annotated[Path, Argument(help='Base dataset directory containing SOMPT scenes')],
     scene_num: int,
-    detector_type: Annotated[DetectorType, Option('--detector_type', '-d', help='Detector used to detect objects')] = DetectorType.YOLOv3,
-    tracker: Annotated[TrackerType, Option('--tracker', '-t', help='Tracker used to track objects')] = TrackerType.IOUTracker,
+    camera_config_path: Path,
+    host_url: str = 'http://localhost:8000',
+    detector_type: Annotated[DetectorType, Option('--detector_type', '-d', help='Detector used to detect objects')] = DetectorType.YOLOv3.value,
+    tracker: Annotated[TrackerType, Option('--tracker', '-t', help='Tracker used to track objects')] = TrackerType.IOUTracker.value,
     update_frequency: Annotated[int, Option('--update_frequency', '-f', help='Frequency of updates to server in number of frames')] = 25
 ) -> None:
+    
+    # Ping server to confirm correct host url
+    r = requests.get(
+        url=f'{host_url}/health'
+    )
+    r.raise_for_status()
+    print(f'Connected to {host_url}')
     
     # Populate env vars needed for detector configs. In production this will be done in Dockerfile
     detector_config = detector_models.get(detector_type)
@@ -61,23 +69,34 @@ def main(
     # Set detector and tracker types for the scene
     scene.set_tracker_and_detector(detector_type, tracker)
     
+    with open(camera_config_path, 'r') as f:
+        camera_config = CameraConfig(**json.load(f))
+    
     place_ids = []
-    for place in places:
+    for place in camera_config.places:
         r = requests.post(
             url=f'{host_url}/place',
-            json=PlaceCreateRequest(latitude=random.randint(0, 100), longitude=random.randint(0, 100), area=10).model_dump()
+            json=PlaceCreateRequest(
+                latitude=place.latitude, 
+                longitude=place.longitude, 
+                area=place.area
+            ).model_dump()
         )
         r.raise_for_status()
         place_ids.append(r.json()['uuid'])
 
-
     response = requests.post(
         url=f'{host_url}/camera',
-        json=CameraCreateRequest(latitude=10, longitude=10, area=10, place_ids=place_ids).model_dump()
+        json=CameraCreateRequest(
+            latitude=camera_config.latitude, 
+            longitude=camera_config.longitude,
+            area=camera_config.area, 
+            place_ids=place_ids
+        ).model_dump()
     )
     response.raise_for_status()
     camera_id = response.json()['uuid']
-    logger.info(f'Received camera id {camera_id}')
+    print(f'Received camera id {camera_id}')
     
     # Start lazy eval
     tracks = model.quadtrack(scene, show_output=False)
@@ -88,13 +107,13 @@ def main(
         if i % update_frequency == 0:
             
             request = CameraUpdateRequest(
-                timestamp=str(datetime.now()),
+                timestamp=str(datetime.now().replace(tzinfo=timezone.utc)), 
                 count=len(annotations),
-                velocities=[]       # TODO: Include velocities
+                velocities={}       # TODO: Include velocities
             )
             
             r = requests.put(
-                url=f'{host_url}/camera/{id}',
+                url=f'{host_url}/camera/{camera_id}',
                 json=request.model_dump()
             )
             r.raise_for_status()

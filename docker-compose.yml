@@ -1,6 +1,10 @@
 services:
   web:
     build: .
+    environment:
+      - ALERT_TOPIC_ARN=arn:aws:sns:us-east-1:359045531401:crowdstop_ai_alerts
+      # https://stackoverflow.com/questions/31324981/how-to-access-host-port-from-docker-container
+      - NEO4J_URL=bolt://neo4j:crowdstop@host.docker.internal:7687
     ports:
       - "8000:8000"
     depends_on:

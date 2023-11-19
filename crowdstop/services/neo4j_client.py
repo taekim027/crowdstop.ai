@@ -1,5 +1,4 @@
 import logging
-from crowdstop.models.api import Velocity
 from neomodel import config
 from datetime import datetime
 import uuid
@@ -7,7 +6,7 @@ import boto3
 
 from crowdstop.models.db import Camera, Place
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger('Neo4jClient')
 
 
 WARN_DENSITY_THRESHOLD = 5
@@ -18,9 +17,9 @@ class Neo4jClient:
     PlaceNs = uuid.uuid5(uuid.NAMESPACE_DNS, 'place.crowdstop.berkeley.edu')
     
     def __init__(self, host_url: str = None, alert_topic_arn: str = None) -> None:
-        self._host_url = host_url
+        self._host_url = host_url or 'bolt://neo4j:neo4j@localhost:7687'
         self._alert_topic = boto3.resource('sns', region_name='us-east-1').Topic(alert_topic_arn) if alert_topic_arn else None
-        config.DATABASE_URL = host_url or 'bolt://neo4j:crowdstop@localhost:7687'
+        config.DATABASE_URL = self._host_url
     
     def create_place(self, latitude: float, longitude: float, area: float) -> str:
         existing = Place.nodes.filter(latitude=latitude, longitude=longitude)
