@@ -1,7 +1,8 @@
 {
+  "name": "Camera8",
   "latitude": 1000,
   "longitude": 1005,
-  "area": 100,
+  "area": 409,
   "places": [
     {
       "latitude": 1006,
