@@ -82,7 +82,11 @@ def main(
 
     # Sample a subset of frames
     mod_val = 10
-    sampled_tracks = itertools.islice(tracks, 0, limit, mod_val)
+    # Handle for when limit == -1
+    if limit != -1:
+        sampled_tracks = itertools.islice(tracks, 0, limit, mod_val)
+    else:
+        sampled_tracks = itertools.islice(tracks, 0, None, mod_val)
 
     # if limit != -1:
     #     # Only evaluate first n images
