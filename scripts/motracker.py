@@ -2,12 +2,13 @@ import os
 import cv2 as cv
 from typer import Typer, Argument, Option
 from pathlib import Path
-from typing import Annotated, Iterable
+from typing import Annotated, Iterable, NamedTuple
 import numpy as np
 from PIL import Image
 import itertools
 import csv
 import json
+import time
 from pathlib import Path
 from shapely.geometry.polygon import Polygon
 
@@ -41,7 +42,11 @@ detector_models = {
 }
 
 # zone config path
-zone_config_path = './ml/zone_config.json'
+zone_config_path = '../ml/zone_config.json'
+
+# Define a named tuple for annotations
+Annotation = NamedTuple('Annotation', [('frame', int), ('person_id', int), ('x', int), ('y', int), ('width', int), ('height', int)])
+
 
 @app.command()
 def main(
@@ -74,9 +79,14 @@ def main(
     # Start lazy eval
     # tracks = model.track(scene, show_output=show_gif or output_gif)
     tracks = model.quadtrack(scene, show_output=show_gif or output_gif)
-    if limit != -1:
-        # Only evaluate first n images
-        tracks = itertools.islice(tracks, limit)
+
+    # Sample a subset of frames
+    mod_val = 10
+    sampled_tracks = itertools.islice(tracks, 0, limit, mod_val)
+
+    # if limit != -1:
+    #     # Only evaluate first n images
+    #     tracks = itertools.islice(tracks, limit)
 
     # Ensure the directory exists
     output_file_path = scene.detect_fp
@@ -87,40 +97,38 @@ def main(
         det_writer = csv.writer(det_file, delimiter=',')
         # det_writer.writerow(['frame', 'person_id', 'xmin', 'ymin', 'width', 'height'])
 
-        for image, annotation in tracks:
+        for image, annotation in sampled_tracks:
+
             for ann in annotation:
                 det_writer.writerow([ann.frame, ann.person_id, ann.x, ann.y, ann.width, ann.height])
 
             if show_gif:
                 cv.imshow("image", image)
 
-            # stop the loop early for testing
-            if ann.frame == 50:
-                break
-    
     if output_gif:
         save_as_gif([image for image, _ in tracks], output_gif)
 
     # evaluate metrics after det.txt has been generated
     gtSource = scene.annotation_fp
     detSource = scene.detect_fp
-    metrics = calculate_motmetrics(gtSource, detSource, bottom_left=False)
+    metrics = calculate_motmetrics(gtSource, detSource, bottom_left=False, sample_rate=mod_val)
     print(metrics)
 
     # read generated det.txt file to track each object's movement at the end of frames
     #movement_results = model.track_movement_from_det_txt(detSource)
 
     # read zone configs
-    with open(zone_config_path, 'r') as config_file:
-        zone_configs = json.load(config_file)
+    # with open(zone_config_path, 'r') as config_file:
+    #     zone_configs = json.load(config_file)
     
-    zones = [Polygon(zone) for zone in zone_configs[str(scene_num)]]
+    # zones = [Polygon(zone) for zone in zone_configs[str(scene_num)]]
 
-    # read det.txt file to track zone movements
-    movement_results = model.track_zone_movement(detSource, zones)
-    #summary = summarize_direction_counts(movement_results)
-    #print(summary)
-    print(movement_results)
+    # # read det.txt file to track zone movements
+    # movement_results = model.track_zone_movement(detSource, zones)
+    # #summary = summarize_direction_counts(movement_results)
+    # #print(summary)
+    # print(movement_results)
+
 
 def summarize_direction_counts(result_array):
     """ 

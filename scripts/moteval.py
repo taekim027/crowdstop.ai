@@ -11,7 +11,7 @@ import os
 import numpy as np
 import motmetrics as mm
 
-def calculate_motmetrics(gtSource, tSource, bottom_left=False):
+def calculate_motmetrics(gtSource, tSource, sample_rate, bottom_left=False):
     # load ground truth
     gt = np.loadtxt(gtSource, delimiter=',')
 
@@ -28,8 +28,8 @@ def calculate_motmetrics(gtSource, tSource, bottom_left=False):
     acc = mm.MOTAccumulator(auto_id=True)
 
     # Max frame number may be different for gt and t files
-    for frame in range(int(t[:, 0].max())):
-        frame += 1  # detection and frame numbers begin at 1
+    for frame in range(1, int(t[:, 0].max()) + 1, sample_rate):
+        # frame += 1  # detection and frame numbers begin at 1
 
         # select id, x, y, width, height for the current frame
         # required format for distance calculation is X, Y, Width, Height
