@@ -156,9 +156,10 @@ class MultipleObjectTracker:
                 
         cv2.destroyAllWindows()
         
-    def track_movement(self, annotations_by_frame: Iterable[list[ImageAnnotation]]):
+    def track_movement(self, zones: list[Polygon], annotations_by_frame: Iterable[list[ImageAnnotation]]) -> list[int]:
         # TODO: track movement of people from one zone to another
-        raise NotImplementedError()
+        # raise NotImplementedError()
+        return [0] * len(zones)
     
     def track_zone_movement(self, det_file_path: str, zones):
         # TODO: Input needs to be converted from the det_file output to the direct feed from the model 

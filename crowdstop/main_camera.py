@@ -98,18 +98,31 @@ def main(
     camera_id = response.json()['uuid']
     print(f'Received camera id {camera_id}')
     
+    # Create polygons
+    zone_polygons = [
+        Polygon(p.polygon)
+        for p in camera_config.places
+    ]
+
     # Start lazy eval
     tracks = model.quadtrack(scene, show_output=False)
     
+    cum_frames = list()
     for i, (_, annotations) in enumerate(tracks):
-        # TODO: track cumulative number of people who went from one side to another
-        
+        cum_frames.extend(annotations)
         if i % update_frequency == 0:
             
+            # Track movement of people across zones so far
+            movement = model.track_movement(zone_polygons, cum_frames)
+            velocities = {
+                id: m
+                for id, m in zip(place_ids, movement)
+            }
+
             request = CameraUpdateRequest(
                 timestamp=str(datetime.now().replace(tzinfo=timezone.utc)), 
                 count=len(annotations),
-                velocities={}       # TODO: Include velocities
+                velocities=velocities
             )
             
             r = requests.put(
@@ -117,6 +130,8 @@ def main(
                 json=request.model_dump()
             )
             r.raise_for_status()
+
+            cum_frames = list()     # reset cumulative frames to not double-count movement
         
 
 def summarize_direction_counts(result_array):
