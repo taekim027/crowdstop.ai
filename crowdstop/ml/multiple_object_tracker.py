@@ -3,6 +3,7 @@ from typing import Any, Iterable
 import cv2
 import numpy as np
 import json
+import itertools
 from tqdm import tqdm
 
 from motrackers import CentroidTracker, CentroidKF_Tracker, SORT, IOUTracker
@@ -55,104 +56,119 @@ class MultipleObjectTracker:
             args[config_name] = config_value
         return args
     
-    def track(self, scene: SomptScene, show_output: bool = False) -> Iterable[tuple[np.ndarray, list[ImageAnnotation]]]:
+    def track(self, scene: SomptScene, show_output: bool = False, downsample_rate: int = 1, limit: int = -1) -> Iterable[tuple[np.ndarray, list[ImageAnnotation]]]:
+        frame_index = 0
         for image in tqdm(scene.frames, total=len(scene)):
+            if frame_index % downsample_rate == 0:
 
-            #image = cv2.resize(image.cv2_image(), (700, 500))
-            image = image.cv2_image()
+                #image = cv2.resize(image.cv2_image(), (700, 500))
+                image = image.cv2_image()
 
-            bboxes, confidences, class_ids = self._model.detect(image)
-            tracks = self._tracker.update(bboxes, confidences, class_ids)
-            annotations: list[ImageAnnotation] = list()
-            for track in tracks:
-                frame, id, xmin, ymin, width, height, *_ = track
-                annotations.append(ImageAnnotation(
-                    frame=frame,
-                    person_id=id,
-                    x=xmin,
-                    y=ymin,
-                    width=width,
-                    height=height
-                ))
+                bboxes, confidences, class_ids = self._model.detect(image)
+                tracks = self._tracker.update(bboxes, confidences, class_ids)
+                annotations: list[ImageAnnotation] = list()
+                for track in tracks:
+                    frame, id, xmin, ymin, width, height, *_ = track
+                    annotations.append(ImageAnnotation(
+                        frame=frame,
+                        person_id=id,
+                        x=xmin,
+                        y=ymin,
+                        width=width,
+                        height=height
+                    ))
+                    
+                updated_image = None
+                if show_output:
+                    updated_image = self._model.draw_bboxes(image.copy(), bboxes, confidences, class_ids)
+                    updated_image: np.ndarray = draw_tracks(updated_image, tracks)
+                    
+                yield updated_image, annotations
                 
-            updated_image = None
-            if show_output:
-                updated_image = self._model.draw_bboxes(image.copy(), bboxes, confidences, class_ids)
-                updated_image: np.ndarray = draw_tracks(updated_image, tracks)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
                 
-            yield updated_image, annotations
-            
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            frame_index += 1
+
+            # Break when the frame index exceeds the limit
+            if limit != -1 and frame_index >= limit:  
                 break
                 
         cv2.destroyAllWindows()
 
-    def quadtrack(self, scene: SomptScene, show_output: bool = False) -> Iterable[tuple[np.ndarray, list[ImageAnnotation]]]:
+    def quadtrack(self, scene: SomptScene, show_output: bool = False, downsample_rate: int = 1, limit: int = -1) -> Iterable[tuple[np.ndarray, list[ImageAnnotation]]]:
+        frame_index = 0
         for image in tqdm(scene.frames, total=len(scene)):
+            if frame_index % downsample_rate == 0:
+                #image = cv2.resize(image.cv2_image(), (700, 500))
+                image = image.cv2_image()
 
-            #image = cv2.resize(image.cv2_image(), (700, 500))
-            image = image.cv2_image()
+                #split image into quadrants
+                height, width, channels = image.shape
+                x_mid, y_mid = width // 2, height // 2
 
-            #split image into quadrants
-            height, width, channels = image.shape
-            x_mid, y_mid = width // 2, height // 2
+                top_left = image[0:y_mid, 0:x_mid]
+                top_right = image[0:y_mid, x_mid:width]
+                bottom_left = image[y_mid:height, 0:x_mid]
+                bottom_right = image[y_mid:height, x_mid:width]
 
-            top_left = image[0:y_mid, 0:x_mid]
-            top_right = image[0:y_mid, x_mid:width]
-            bottom_left = image[y_mid:height, 0:x_mid]
-            bottom_right = image[y_mid:height, x_mid:width]
+                bboxes = []
+                confidences = []
+                class_ids = []
+                offsets = [(0, 0), (x_mid, 0), (0, y_mid), (x_mid, y_mid)]
 
-            bboxes = []
-            confidences = []
-            class_ids = []
-            offsets = [(0, 0), (x_mid, 0), (0, y_mid), (x_mid, y_mid)]
+                for i, subimage in enumerate([top_left, top_right, bottom_left, bottom_right]):
+                    bboxes_sub, confidences_sub, class_ids_sub = self._model.detect(subimage)
 
-            for i, subimage in enumerate([top_left, top_right, bottom_left, bottom_right]):
-                bboxes_sub, confidences_sub, class_ids_sub = self._model.detect(subimage)
+                    #applies pixel offset depending on which quadrant is being scanned
+                    offset_x, offset_y = offsets[i]
+                    bboxes_sub[:, 0] += offset_x
+                    bboxes_sub[:, 1] += offset_y
 
-                #applies pixel offset depending on which quadrant is being scanned
-                offset_x, offset_y = offsets[i]
-                bboxes_sub[:, 0] += offset_x
-                bboxes_sub[:, 1] += offset_y
+                    bboxes.append(bboxes_sub)
+                    confidences.append(confidences_sub)
+                    class_ids.append(class_ids_sub)
 
-                bboxes.append(bboxes_sub)
-                confidences.append(confidences_sub)
-                class_ids.append(class_ids_sub)
+                bboxes = np.vstack(bboxes)
+                confidences = np.concatenate(confidences)
+                class_ids = np.concatenate(class_ids)
 
-            bboxes = np.vstack(bboxes)
-            confidences = np.concatenate(confidences)
-            class_ids = np.concatenate(class_ids)
+                # filter to only include "person" class, or id == 0
+                person_mask = class_ids == 0
+                bboxes = bboxes[person_mask]
+                confidences = confidences[person_mask]
+                class_ids = class_ids[person_mask]
 
-            # filter to only include "person" class, or id == 0
-            person_mask = class_ids == 0
-            bboxes = bboxes[person_mask]
-            confidences = confidences[person_mask]
-            class_ids = class_ids[person_mask]
+                tracks = self._tracker.update(bboxes, confidences, class_ids)
+                annotations: list[ImageAnnotation] = list()
 
-            tracks = self._tracker.update(bboxes, confidences, class_ids)
-            annotations: list[ImageAnnotation] = list()
-
-            for track in tracks:
-                frame, id, xmin, ymin, width, height, *_ = track
-                annotations.append(ImageAnnotation(
-                    frame=frame,
-                    person_id=id,
-                    x=xmin,
-                    y=ymin,
-                    width=width,
-                    height=height
-                ))
+                for track in tracks:
+                    frame, id, xmin, ymin, width, height, *_ = track
+                    annotations.append(ImageAnnotation(
+                        frame=frame,
+                        person_id=id,
+                        x=xmin,
+                        y=ymin,
+                        width=width,
+                        height=height
+                    ))
+                    
+                updated_image = None
+                if show_output:
+                    updated_image = self._model.draw_bboxes(image.copy(), bboxes, confidences, class_ids)
+                    updated_image: np.ndarray = draw_tracks(updated_image, tracks)
+                    
+                yield updated_image, annotations
                 
-            updated_image = None
-            if show_output:
-                updated_image = self._model.draw_bboxes(image.copy(), bboxes, confidences, class_ids)
-                updated_image: np.ndarray = draw_tracks(updated_image, tracks)
-                
-            yield updated_image, annotations
-            
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+            frame_index += 1
+
+            # Break when the frame index exceeds the limit
+            if limit != -1 and frame_index >= limit:  
                 break
-                
+                    
         cv2.destroyAllWindows()
         
     def track_movement(self, zones: list[Polygon], annotations_by_frame: Iterable[list[ImageAnnotation]]) -> list[int]:
