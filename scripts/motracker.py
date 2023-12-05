@@ -57,7 +57,7 @@ def main(
     gpu: Annotated[bool, Option(help='Flag to use gpu to run the deep learning model. Default is `False`')] = False,
     output_gif: Path = None,
     show_gif: bool = True,
-    limit: int = -1
+    limit: int = 50
 ) -> None:
     
     print(os.getcwd())
@@ -75,39 +75,40 @@ def main(
 
     # Set detector and tracker types for the scene
     scene.set_tracker_and_detector(detector_type, tracker)
-    
+
     # Start lazy eval
-    # tracks = model.track(scene, show_output=show_gif or output_gif)
-    tracks = model.quadtrack(scene, show_output=show_gif or output_gif)
+    downsample_rate = 5
+    # tracks = model.track(scene, show_output=show_gif or output_gif, downsample_rate=downsample_rate, limit=limit)
+    tracks = model.quadtrack(scene, show_output=show_gif or output_gif, downsample_rate = downsample_rate, limit=limit)
 
-    # Sample a subset of frames
-    mod_val = 10
-    # Handle for when limit == -1
-    if limit != -1:
-        sampled_tracks = itertools.islice(tracks, 0, limit, mod_val)
-    else:
-        sampled_tracks = itertools.islice(tracks, 0, None, mod_val)
-
+    # # Sample a subset of frames
+    # mod_val = 20
+    # # Handle for when limit == -1
     # if limit != -1:
-    #     # Only evaluate first n images
-    #     tracks = itertools.islice(tracks, limit)
+    #     sampled_tracks = itertools.islice(tracks, 0, limit, mod_val)
+    # else:
+    #     sampled_tracks = itertools.islice(tracks, 0, None, mod_val)
 
     # Ensure the directory exists
     output_file_path = scene.detect_fp
     output_file_path.touch()
     
     # Write annotations to a det.txt file
+    start_time = time.time()
     with open(output_file_path, mode='w', newline='', encoding='utf-8') as det_file:
         det_writer = csv.writer(det_file, delimiter=',')
         # det_writer.writerow(['frame', 'person_id', 'xmin', 'ymin', 'width', 'height'])
 
-        for image, annotation in sampled_tracks:
+        for image, annotation in tracks:
 
             for ann in annotation:
                 det_writer.writerow([ann.frame, ann.person_id, ann.x, ann.y, ann.width, ann.height])
 
             if show_gif:
                 cv.imshow("image", image)
+    
+    duration = time.time() - start_time
+    print(f'duration: {duration}')
 
     if output_gif:
         save_as_gif([image for image, _ in tracks], output_gif)
@@ -115,7 +116,7 @@ def main(
     # evaluate metrics after det.txt has been generated
     gtSource = scene.annotation_fp
     detSource = scene.detect_fp
-    metrics = calculate_motmetrics(gtSource, detSource, bottom_left=False, sample_rate=mod_val)
+    metrics = calculate_motmetrics(gtSource, detSource, bottom_left=False, sample_rate=downsample_rate)
     print(metrics)
 
     # read generated det.txt file to track each object's movement at the end of frames

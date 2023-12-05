@@ -28,13 +28,17 @@ def calculate_motmetrics(gtSource, tSource, sample_rate, bottom_left=False):
     acc = mm.MOTAccumulator(auto_id=True)
 
     # Max frame number may be different for gt and t files
-    for frame in range(1, int(t[:, 0].max()) + 1, sample_rate):
+    for frame in range(1, int(t[:, 0].max()) + 1):
+        # match frame id to downsampled id 
+        frame_id = frame * sample_rate
+
+        # print(frame_id, frame)
         # frame += 1  # detection and frame numbers begin at 1
 
         # select id, x, y, width, height for the current frame
         # required format for distance calculation is X, Y, Width, Height
         # We already have this format
-        gt_dets = gt[gt[:, 0] == frame, 1:6]  # select all detections in gt
+        gt_dets = gt[gt[:, 0] == frame_id, 1:6]  # select all detections in gt
         t_dets = t[t[:, 0] == frame, 1:6]  # select all detections in t
 
         C = mm.distances.iou_matrix(gt_dets[:, 1:], t_dets[:, 1:], max_iou=0.5)  # format: gt, t
@@ -42,6 +46,9 @@ def calculate_motmetrics(gtSource, tSource, sample_rate, bottom_left=False):
         # Call update once for per frame.
         # format: gt object ids, t object ids, distance
         acc.update(gt_dets[:, 0].astype('int').tolist(), t_dets[:, 0].astype('int').tolist(), C)
+
+        if frame == int(t[:, 0].max()):
+            break
 
     mh = mm.metrics.create()
 
