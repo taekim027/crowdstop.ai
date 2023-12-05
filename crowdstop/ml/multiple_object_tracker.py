@@ -13,7 +13,6 @@ from crowdstop.models.enums import TrackerType, DetectorType
 
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
-from itertools import combinations
 
 class MultipleObjectTracker:
 
@@ -157,12 +156,43 @@ class MultipleObjectTracker:
         cv2.destroyAllWindows()
         
     def track_movement(self, zones: list[Polygon], annotations_by_frame: Iterable[list[ImageAnnotation]]) -> list[int]:
-        # TODO: track movement of people from one zone to another
-        # raise NotImplementedError()
-        return [0] * len(zones)
+
+        # For each ID, assign zones and return their beginning and end zones 
+        def assign_zone(center: tuple[int, int]) -> int:
+            x, y = center
+            point = Point(x, y)
+            for i, zone in enumerate(zones):
+                if zone.contains(point):
+                    return i
+            return None
+        
+        start_end_zones: dict[int, dict[str, int]] = dict()
+        ids_and_zones = list()
+        for frame, annotations in enumerate(annotations_by_frame):
+            # IDs will export in chronological order so no need to track frames
+            for bounding_box in annotations:
+                zone = assign_zone(bounding_box.center)
+                ids_and_zones.append((bounding_box.person_id, zone))
+                
+                if bounding_box.person_id not in start_end_zones:
+                    start_end_zones[bounding_box.person_id] = {'start': zone, 'end': 0}     # dummy value for end
+                else:
+                    start_end_zones[bounding_box.person_id]['end'] = zone
+
+        # count the number of total zone changes
+        zone_change_counts = [0] * len(zones)
+        for id, start_end in start_end_zones.items():
+            start_zone = start_end['start']
+            end_zone = start_end['end']
+            if start_zone != end_zone:
+                if not start_zone or not end_zone:
+                    continue
+                zone_change_counts[start_zone] -= 1
+                zone_change_counts[end_zone] += 1
+
+        return zone_change_counts
     
     def track_zone_movement(self, det_file_path: str, zones):
-        # TODO: Input needs to be converted from the det_file output to the direct feed from the model 
         id_table = []
         zone_ids = []
 

@@ -72,7 +72,7 @@ def main(
     with open(camera_config_path, 'r') as f:
         camera_config = CameraConfig(**json.load(f))
     
-    place_ids = []
+    place_ids: list[str] = []
     for place in camera_config.places:
         r = requests.post(
             url=f'{host_url}/place',
@@ -105,11 +105,11 @@ def main(
     ]
 
     # Start lazy eval
-    tracks = model.quadtrack(scene, show_output=False)
+    tracks = model.track(scene, show_output=False)
     
     cum_frames = list()
     for i, (_, annotations) in enumerate(tracks):
-        cum_frames.extend(annotations)
+        cum_frames.append(annotations)
         if i % update_frequency == 0:
             
             # Track movement of people across zones so far

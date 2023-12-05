@@ -30,6 +30,10 @@ class ImageAnnotation(BaseModel):
     
     def center_top(self):
         return self.x + self.width / 2, self.y + self.height / 2
+    
+    @property
+    def center(self):
+        return self.x + self.width / 2, self.y + self.height / 2
 
 class SomptImage:
 
