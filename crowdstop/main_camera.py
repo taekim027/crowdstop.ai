@@ -46,7 +46,8 @@ def main(
     host_url: str = 'http://localhost:8000',
     detector_type: Annotated[DetectorType, Option('--detector_type', '-d', help='Detector used to detect objects')] = DetectorType.YOLOv3.value,
     tracker: Annotated[TrackerType, Option('--tracker', '-t', help='Tracker used to track objects')] = TrackerType.IOUTracker.value,
-    update_frequency: Annotated[int, Option('--update_frequency', '-f', help='Frequency of updates to server in number of frames')] = 25
+    downsample_rate: Annotated[int, Option('--downsample_rate', '-r', help='Frequency of updates to server in number of frames')] = 3,
+    update_frequency: Annotated[int, Option('--update_frequency', '-f', help='Frequency of updates to server in number of frames')] = 2
 ) -> None:
     
     # Ping server to confirm correct host url
@@ -105,7 +106,7 @@ def main(
     ]
 
     # Start lazy eval
-    tracks = model.track(scene, show_output=False)
+    tracks = model.track(scene, show_output=False, downsample_rate=downsample_rate)
     
     cum_frames = list()
     for i, (_, annotations) in enumerate(tracks):
