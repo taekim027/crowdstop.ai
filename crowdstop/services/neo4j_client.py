@@ -4,7 +4,7 @@ from datetime import datetime
 import uuid
 import boto3
 
-from crowdstop.models.db import Camera, Place
+from crowdstop.models.db import Camera, Place, Street
 
 logger = logging.getLogger('Neo4jClient')
 
@@ -38,7 +38,7 @@ class Neo4jClient:
         logger.info(f'Created new camera with id {new_place.uuid}')
         return new_place.uuid
 
-    def create_camera(self, name: str, latitude: float, longitude: float, area: float, place_ids: list[str]) -> str:
+    def create_camera(self, name: str, latitude: float, longitude: float, area: float, place_ids: list[str], distances: list[float]) -> str:
         existing = Camera.nodes.filter(latitude=latitude, longitude=longitude)
         if existing:
             logger.info(f'Camera at ({latitude, longitude}) already exists with id {existing[0].uuid}, skipping creation')
@@ -53,10 +53,10 @@ class Neo4jClient:
         )
         
         new_camera.save() 
-        for place_id in place_ids:
+        for place_id, distance in zip(place_ids, distances):
             place = Place.nodes.get(uuid=place_id)
             assert place is not None, f'Could not find place with id {place_id}'
-            new_camera.places.connect(place)
+            new_camera.places.connect(place, {'distance': distance})
         
         logger.info(f'Created new camera with id {new_camera.uuid}')
         return new_camera.uuid
@@ -71,10 +71,15 @@ class Neo4jClient:
         camera.save()
         
         for place in camera.places.all():
+            velocity = velocities.get(place.uuid, 0)  # Sign of velocity is positive if coming towards camera
             place: Place
-            place.people_count -= velocities.get(place.uuid, 0)  # Sign of velocity is positive if coming towards camera
+            place.people_count -= velocity
             place.last_updated = max(timestamp, place.last_updated)
             place.save()
+            
+            street: Street = camera.places.relationship(place)
+            street.velocity = velocity
+            street.save()
 
     def delete_camera(self, id: str):
         logger.info(f'Deleting camera {id}...')

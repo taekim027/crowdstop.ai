@@ -1,13 +1,17 @@
 import os
 from neomodel import (
     StructuredNode, UniqueIdProperty, FloatProperty, StringProperty, ArrayProperty, 
-    DateTimeProperty, RelationshipTo, RelationshipFrom, config
+    DateTimeProperty, RelationshipTo, RelationshipFrom, config, StructuredRel
 )
 
 config.DATABASE_URL = 'bolt://neo4j:password@localhost:7687'
 
 DENSITY_ALERT_THRESHOLD = int(os.getenv('DENSITY_ALERT_THRESHOLD', '10'))
 
+
+class Street(StructuredRel):
+    distance = FloatProperty(required=True)
+    velocity = FloatProperty(default=0)
 
 class Camera(StructuredNode):
     # Unchanging properties
@@ -22,7 +26,7 @@ class Camera(StructuredNode):
     people_velocities = ArrayProperty(base_property=FloatProperty(default=0))
     last_updated = DateTimeProperty(default_now=True)
     
-    places = RelationshipTo('Place', 'PLACES')
+    places = RelationshipTo('Place', 'PLACES', model=Street)
     
     @property
     def density(self) -> float:

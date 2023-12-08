@@ -12,6 +12,7 @@ class CameraCreateRequest(BaseModel):
     longitude: float
     area: float         # approx. area in sqft covered by camera
     place_ids: list[str]
+    distances: list[float]
 
 class CreateResponse(BaseModel):
     uuid: str

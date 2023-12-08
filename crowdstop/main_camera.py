@@ -93,7 +93,8 @@ def main(
             latitude=camera_config.latitude, 
             longitude=camera_config.longitude,
             area=camera_config.area, 
-            place_ids=place_ids
+            place_ids=place_ids,
+            distances=[p.distance for p in camera_config.places],
         ).model_dump()
     )
     response.raise_for_status()

@@ -4,6 +4,7 @@ class Place(BaseModel):
     latitude: float
     longitude: float
     area: float
+    distance: float
     polygon: list[list[int]]
 
 class CameraConfig(BaseModel):
