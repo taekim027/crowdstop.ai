@@ -89,10 +89,12 @@ def main(
     response = requests.post(
         url=f'{host_url}/camera',
         json=CameraCreateRequest(
+            name=camera_config.name,
             latitude=camera_config.latitude, 
             longitude=camera_config.longitude,
             area=camera_config.area, 
-            place_ids=place_ids
+            place_ids=place_ids,
+            distances=[p.distance for p in camera_config.places],
         ).model_dump()
     )
     response.raise_for_status()

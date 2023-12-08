@@ -8,6 +8,7 @@
       "latitude": 1005,
       "longitude": 1005,
       "area": 100,
+      "distance": 5,
       "polygon": [
         [0, 485],
         [1920, 485],
@@ -20,6 +21,7 @@
       "latitude": 1001,
       "longitude": 1001,
       "area": 100,
+      "distance": 5,
       "polygon": [
         [0, 760],
         [1920, 760],
