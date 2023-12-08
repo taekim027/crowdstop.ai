@@ -38,7 +38,7 @@ class Neo4jClient:
         logger.info(f'Created new camera with id {new_place.uuid}')
         return new_place.uuid
 
-    def create_camera(self, latitude: float, longitude: float, area: float, place_ids: list[str]) -> str:
+    def create_camera(self, name: str, latitude: float, longitude: float, area: float, place_ids: list[str]) -> str:
         existing = Camera.nodes.filter(latitude=latitude, longitude=longitude)
         if existing:
             logger.info(f'Camera at ({latitude, longitude}) already exists with id {existing[0].uuid}, skipping creation')
@@ -46,6 +46,7 @@ class Neo4jClient:
         
         new_camera = Camera(
             uuid=uuid.uuid5(self.CameraNs, f'{latitude}.{longitude}').hex,
+            name=name,
             latitude=latitude,
             longitude=longitude,
             area=area,

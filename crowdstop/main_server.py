@@ -28,7 +28,7 @@ def create_place(request: PlaceCreateRequest) -> CreateResponse:
 @app.post('/camera')
 def create_camera(request: CameraCreateRequest) -> CreateResponse:
     logger.info(f'Incoming request to creat camera: {request}')
-    camera_id = neo4j_client.create_camera(request.latitude, request.longitude, request.area, request.place_ids)
+    camera_id = neo4j_client.create_camera(request.name, request.latitude, request.longitude, request.area, request.place_ids)
     return CreateResponse(uuid=camera_id)
 
 @app.put('/camera/{camera_id}')

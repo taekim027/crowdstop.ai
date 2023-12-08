@@ -12,6 +12,7 @@ DENSITY_ALERT_THRESHOLD = int(os.getenv('DENSITY_ALERT_THRESHOLD', '10'))
 class Camera(StructuredNode):
     # Unchanging properties
     uuid = UniqueIdProperty()
+    name = StringProperty()
     latitude = FloatProperty(required=True)
     longitude = FloatProperty(required=True)
     area = FloatProperty(required=True)
